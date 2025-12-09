@@ -15,24 +15,6 @@ from sentence_transformers import SentenceTransformer
 
 # ---------- Load Model (cached across reruns) ----------
 
-# @st.cache_resource
-# def load_model():
-#     # Small general chat model that runs on CPU
-#     model_name = "HuggingFaceH4/zephyr-7b-beta"  # example; we can swap to smaller if too slow
-
-#     tokenizer = AutoTokenizer.from_pretrained(model_name)
-#     tokenizer.pad_token = tokenizer.eos_token
-
-#     device = "cuda" if torch.cuda.is_available() else "cpu"
-#     dtype = torch.float16 if device == "cuda" else torch.float32
-
-#     model = AutoModelForCausalLM.from_pretrained(
-#         model_name,
-#         torch_dtype=dtype,
-#     )
-#     model.to(device)
-
-#     return tokenizer, model, device
 
 @st.cache_resource
 def load_model():
@@ -80,21 +62,17 @@ def extract_ticker(text):
 # ---------- Prompt building (financial chat style) ----------
 
 def build_prompt(history):
-    # system = (
-    #     "Instruction: You are a friendly, professional financial assistant. "
-    #     "You explain concepts clearly in full sentences. "
-    #     "If live market data is provided (prices, PE, sector), use it in your answer. "
-    #     "Structure answers as: (1) brief summary, (2) important details, (3) risks or caveats.\n"
-    # )
+
 
     system = (
         "Instruction: You are a friendly, professional financial assistant. "
-        "You explain concepts clearly in full sentences. "
-        "When CONTEXT from financial reports is provided, you MUST treat it as the primary source of truth. "
-        "If the CONTEXT contains an explicit numeric answer (amounts, percentages, ratios), copy that exact number and unit from the CONTEXT. "
-        "Do NOT invent or change numeric values; if you are not sure of an exact number, say you are not sure instead of guessing. "
-        "Use any live market data (prices, PE, sector) only as additional color, not to overwrite facts in CONTEXT. "
-        "Structure answers as: (1) brief summary, (2) important details, (3) risks or caveats.\n"
+        "Your main job is to answer questions about finance, investing, markets, and the economy. "
+        "You can also respond briefly and naturally to greetings or small talk (like 'hi', 'hello', 'how are you') "
+        "and then gently steer the conversation back to finance. "
+        "When CONTEXT from financial reports is provided, treat it as the primary source of truth for factual numbers "
+        "and copy numeric values exactly rather than inventing them. "
+        "Use any live market data (prices, PE, sector) as additional color. "
+        "Structure finance answers as: (1) brief summary, (2) important details, (3) risks or caveats.\n"
     )
 
 
@@ -115,18 +93,6 @@ def generate_response(history, tokenizer, model, device):
     inputs = tokenizer(prompt_draft, return_tensors="pt").to(device)
 
     with torch.no_grad():
-        # draft_outputs = model.generate(
-        #     **inputs,
-        #     max_new_tokens=96,
-        #     eos_token_id=tokenizer.eos_token_id,
-        #     pad_token_id=tokenizer.eos_token_id,
-        #     do_sample=True,
-        #     temperature=0.7,
-        #     top_p=0.9,
-        #     repetition_penalty=1.05,
-        #     no_repeat_ngram_size=3,
-        # )
-
 
 
         draft_outputs = model.generate(
@@ -163,29 +129,6 @@ def generate_response(history, tokenizer, model, device):
     refine_inputs = tokenizer(refine_prompt, return_tensors="pt").to(device)
 
     with torch.no_grad():
-        # refine_outputs = model.generate(
-        #     **refine_inputs,
-        #     max_new_tokens=128,
-        #     eos_token_id=tokenizer.eos_token_id,
-        #     pad_token_id=tokenizer.eos_token_id,
-        #     do_sample=True,
-        #     temperature=0.7,
-        #     top_p=0.9,
-        #     repetition_penalty=1.05,
-        #     no_repeat_ngram_size=3,
-        # )
-
-        # refine_outputs = model.generate(
-        #     **refine_inputs,
-        #     max_new_tokens=96,   # give more room to finish sentences
-        #     eos_token_id=tokenizer.eos_token_id,
-        #     pad_token_id=tokenizer.eos_token_id,
-        #     do_sample=True,
-        #     temperature=0.7,
-        #     top_p=0.9,
-        #     repetition_penalty=1.05,
-        #     no_repeat_ngram_size=3,
-        # )
 
         refine_outputs = model.generate(
             **refine_inputs,
@@ -270,40 +213,56 @@ for role, msg in st.session_state.history:
 user_msg = st.chat_input("Ask your finance question...")
 
 
+
 if user_msg:
     # Add user message
     st.session_state.history.append(("User", user_msg))
     st.chat_message("user").write(user_msg)
 
-    # --- NEW: try to fetch live ticker context from the text ---
+    # --- NEW: detect greetings / very general small talk ---
+    lower_msg = user_msg.strip().lower()
+    greeting_triggers = ["hi", "hello", "hey", "good morning", "good evening", "good afternoon"]
+    help_triggers = ["can you help", "what can you do", "i'm new", "im new", "i am new"]
+
+    is_greeting = any(lower_msg == g or lower_msg.startswith(g + " ") for g in greeting_triggers)
+    is_helpish = any(p in lower_msg for p in help_triggers)
+
+    if is_greeting:
+        reply = (
+            "Hi! I’m your financial assistant. "
+            "You can ask me about stocks, ETFs, company fundamentals, or general investing questions."
+        )
+        st.chat_message("assistant").write(reply)
+        st.session_state.history.append(("Assistant", reply))
+        st.stop()
+
+    if is_helpish and not is_greeting:
+        reply = (
+            "I can help explain investing concepts, analyze companies at a high level, "
+            "and use some live market data to discuss stocks and ETFs. "
+            "What finance or investing question would you like to start with?"
+        )
+        st.chat_message("assistant").write(reply)
+        st.session_state.history.append(("Assistant", reply))
+        st.stop()
+    # -------------------------------------------------------
+
+    # Existing Yahoo Finance part (if you have it)
     ticker = extract_ticker(user_msg)
     if ticker:
         live_context = get_ticker_summary(ticker)
         st.session_state.history.append(("System", live_context))
-    # -----------------------------------------------------------
 
-
-    # NEW: FinanceQA RAG context
-    # rag_context = retrieve_context(user_msg)
-    # if rag_context:
-    #     st.session_state.history.append(
-    #         ("System", f"Context from financial reports:\n{rag_context}")
-    #     )
-
-
+    # Existing RAG part
     rag_context = retrieve_context(user_msg)
     if rag_context:
         st.session_state.history.append(
-            (
-                "System",
-                "CONTEXT from financial reports (use these numbers exactly, do not change them):\n"
-                + rag_context
-            )
+            ("System",
+             "CONTEXT from financial reports (use these numbers exactly, do not change them):\n"
+             + rag_context)
         )
 
-
-
-    # Model reply
+    # Model reply (draft+refine inside generate_response)
     with st.chat_message("assistant"):
         with st.spinner("Thinking…"):
             reply = generate_response(
@@ -312,8 +271,12 @@ if user_msg:
                 model,
                 device,
             )
-
         st.write(reply)
+
+    st.session_state.history.append(("Assistant", reply))
+
+
+
 
     # Save reply to history
     st.session_state.history.append(("Assistant", reply))
