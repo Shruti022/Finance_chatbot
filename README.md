@@ -9,7 +9,7 @@ Start with running in the terminal:
 pip install -r requirements.txt
 ```
 
-To run the project
+To run the project, run the following in the terminal:
 ```bash
 streamlit run /Finance_chatbot/finance_chat_app.py
 
