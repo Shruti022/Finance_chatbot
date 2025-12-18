@@ -1,287 +1,300 @@
-from turtle import pd
-from xml.parsers.expat import model
 import streamlit as st
 import torch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import yfinance as yf
 import re
-
-
 import pandas as pd
 import faiss
 import numpy as np
 from sentence_transformers import SentenceTransformer
+import os
 
-
-# ---------- Load Model (cached across reruns) ----------
-
+# ==========================================
+# 1. App Configuration & Device Logic
+# ==========================================
+st.set_page_config(page_title="FinChat: AML Group Project", page_icon="💸", layout="wide")
 
 @st.cache_resource
-def load_model():
-    # Tiny chat model that is OK on CPU
-    model_name = "microsoft/Phi-3-mini-4k-instruct"
+def get_device_map():
+    """
+    Detects the best available hardware.
+    - MacOS M-series: Uses 'mps' (Metal Performance Shaders)
+    - Windows w/ NVIDIA: Uses 'cuda'
+    - Default: 'cpu'
+    """
+    if torch.backends.mps.is_available():
+        return "mps"
+    elif torch.cuda.is_available():
+        return "cuda"
+    return "cpu"
 
+DEVICE = get_device_map()
+
+# ==========================================
+# 2. Model Loading (Fixed for Phi-3)
+# ==========================================
+@st.cache_resource
+def load_model():
+    model_name = "microsoft/Phi-3-mini-4k-instruct"
+    
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     tokenizer.pad_token = tokenizer.eos_token
 
-    device = "cpu"
-    dtype = torch.float32
-
+    run_device = get_device_map()
+    
+    # trust_remote_code=False is CRITICAL to avoid the 'DynamicCache' error
     model = AutoModelForCausalLM.from_pretrained(
         model_name,
-        torch_dtype=dtype,
+        torch_dtype=torch.float32, 
         device_map=None,
-    ).to(device)
+        trust_remote_code=False, 
+    ).to(run_device)
 
-    return tokenizer, model, device
+    return tokenizer, model
 
+@st.cache_resource
+def load_retrieval_resources():
+    """
+    Safely loads RAG resources. Returns None if files are missing.
+    """
+    try:
+        if not os.path.exists("financeqa_df.pkl") or not os.path.exists("financeqa_index.faiss"):
+            return None, None, None
+        df = pd.read_pickle("financeqa_df.pkl")
+        index = faiss.read_index("financeqa_index.faiss")
+        embed_model = SentenceTransformer("all-MiniLM-L6-v2")
+        return df, index, embed_model
+    except Exception as e:
+        return None, None, None
 
+tokenizer, model = load_model()
+df_rag, index_rag, embed_model = load_retrieval_resources()
 
-
-def get_ticker_summary(ticker):
+# ==========================================
+# 3. Feature Modules (Data Fetching)
+# ==========================================
+def get_financial_statements(ticker):
+    """Fetches key financial metrics for context."""
     try:
         t = yf.Ticker(ticker)
-        info = t.info  # may be .fast_info in newer versions
-        price = info.get("currentPrice")
-        pe = info.get("trailingPE")
-        sector = info.get("sector")
-        return f"Live data for {ticker}: price={price}, PE={pe}, sector={sector}."
-    except Exception as e:
-        return f"Could not fetch live data for {ticker}."
+        income_stmt = t.income_stmt
+        balance_sheet = t.balance_sheet
+        summary = []
+        
+        # Income Statement Data
+        if not income_stmt.empty:
+            rev = income_stmt.loc['Total Revenue'].iloc[0] if 'Total Revenue' in income_stmt.index else "N/A"
+            net = income_stmt.loc['Net Income'].iloc[0] if 'Net Income' in income_stmt.index else "N/A"
+            summary.append(f"Most Recent Revenue: {rev}, Net Income: {net}")
+            
+        # Balance Sheet Data
+        if not balance_sheet.empty:
+            assets = balance_sheet.loc['Total Assets'].iloc[0] if 'Total Assets' in balance_sheet.index else "N/A"
+            liab = balance_sheet.loc['Total Liabilities Net Minority Interest'].iloc[0] if 'Total Liabilities Net Minority Interest' in balance_sheet.index else "N/A"
+            summary.append(f"Total Assets: {assets}, Total Liabilities: {liab}")
+            
+        return " | ".join(summary)
+    except:
+        return "Financial Statement Data Unavailable"
 
+def get_ticker_live_data(ticker):
+    """Fetches live price, PE, and Beta for recommendations."""
+    try:
+        t = yf.Ticker(ticker)
+        info = t.info
+        price = info.get("currentPrice", "N/A")
+        pe = info.get("trailingPE", "N/A")
+        f_pe = info.get("forwardPE", "N/A")
+        beta = info.get("beta", "N/A")
+        sector = info.get("sector", "N/A")
+        rec_key = info.get("recommendationKey", "none")
+        
+        return (f"Live Market Data for {ticker}: Price={price}, Trailing PE={pe}, "
+                f"Forward PE={f_pe}, Beta={beta}, Sector={sector}, Analyst Consensus={rec_key}.")
+    except:
+        return f"Live data unavailable for {ticker}."
 
 def extract_ticker(text):
-    # super naive: look for ALL‑CAPS 1–5 letter tokens
-    # candidates = re.findall(r"\b[A-Z]{1,5}\b", text)
+    """
+    Extracts tickers while ignoring common English words (Stopwords).
+    Fixes the 'OF' issue.
+    """
+    # 1. Regex: Look for uppercase words 2-5 chars long
     candidates = re.findall(r"\b[A-Z]{2,5}\b", text)
-    blacklist = {"WHAT", "IS", "ARE", "THE", "AND", "ETF", "STOCK"}
-    tickers = [c for c in candidates if c not in blacklist]
-    return tickers[0] if tickers else None
-
-
-# ---------- Prompt building (financial chat style) ----------
-
-def build_prompt(history):
-
-
-    system = (
-        "Instruction: You are a friendly, professional financial assistant. "
-        "Your main job is to answer questions about finance, investing, markets, and the economy. "
-        "You can also respond briefly and naturally to greetings or small talk (like 'hi', 'hello', 'how are you') "
-        "and then gently steer the conversation back to finance. "
-        "When CONTEXT from financial reports is provided, treat it as the primary source of truth for factual numbers "
-        "and copy numeric values exactly rather than inventing them. "
-        "Use any live market data (prices, PE, sector) as additional color. "
-        "Structure finance answers as: (1) brief summary, (2) important details, (3) risks or caveats.\n"
-    )
-
-
-
-
-    conversation = ""
-    for role, msg in history:
-        conversation += f"{role}: {msg}\n"
-
-    return system + conversation + "Assistant:"
-
-
-
-# ---------- Model generation ----------
-def generate_response(history, tokenizer, model, device):
-    # ----- Step 1: draft answer -----
-    prompt_draft = build_prompt(history)
-    inputs = tokenizer(prompt_draft, return_tensors="pt").to(device)
-
-    with torch.no_grad():
-
-
-        draft_outputs = model.generate(
-            **inputs,
-            max_new_tokens=48,
-            eos_token_id=tokenizer.eos_token_id,
-            pad_token_id=tokenizer.eos_token_id,
-            do_sample=True,
-            temperature=0.7,
-            top_p=0.9,
-            repetition_penalty=1.05,
-            no_repeat_ngram_size=3,
-        )
-
-
-
-
-    decoded_draft = tokenizer.decode(draft_outputs[0], skip_special_tokens=True)
-    if "Assistant:" in decoded_draft:
-        draft_answer = decoded_draft.split("Assistant:")[-1].strip()
-    else:
-        draft_answer = decoded_draft.strip()
-
-    # ----- Step 2: refine answer -----
-    refine_prompt = (
-        "Instruction: You are improving a draft answer from a financial assistant. "
-        "Task: Fix any incomplete sentences, make the explanation clearer, "
-        "and add at least one concrete risk or caveat if relevant.\n\n"
-        f"User question:\n{history[-1][1]}\n\n"
-        f"Draft answer:\n{draft_answer}\n\n"
-        "Improved answer:"
-    )
-
-    refine_inputs = tokenizer(refine_prompt, return_tensors="pt").to(device)
-
-    with torch.no_grad():
-
-        refine_outputs = model.generate(
-            **refine_inputs,
-            max_new_tokens=96,
-            eos_token_id=tokenizer.eos_token_id,
-            pad_token_id=tokenizer.eos_token_id,
-            do_sample=True,
-            temperature=0.7,
-            top_p=0.9,
-            repetition_penalty=1.05,
-            no_repeat_ngram_size=3,
-        )
-
-
-
-    refined_decoded = tokenizer.decode(refine_outputs[0], skip_special_tokens=True)
-    if "Improved answer:" in refined_decoded:
-        refined_answer = refined_decoded.split("Improved answer:")[-1].strip()
-    else:
-        refined_answer = refined_decoded.strip()
-
-    return refined_answer
-
-
-#Rag
-@st.cache_resource
-def load_retrieval():
-    df = pd.read_pickle("financeqa_df.pkl")
-    index = faiss.read_index("financeqa_index.faiss")
-    embed_model = SentenceTransformer("all-MiniLM-L6-v2")
-    return df, index, embed_model
+    
+    # 2. Strict Blacklist (Common uppercase words in questions)
+    blacklist = {
+        "WHAT", "IS", "ARE", "THE", "AND", "FOR", "CAN", "YOU", "HELP", 
+        "BUY", "SELL", "HOW", "WHO", "WHY", "ETF", "STOCK", "SHARE", 
+        "CAPITAL", "EQUITY", "PRICE", "DATE", "YEAR", "DATA", "LONG", 
+        "TERM", "DEBT", "RATIO", "COST", "CASH", "FLOW", "OF", "IN", "TO", "MY"
+    }
+    
+    # Filter candidates
+    valid_tickers = [c for c in candidates if c not in blacklist]
+    
+    # Return the first valid ticker found, or None
+    return valid_tickers[0] if valid_tickers else None
 
 def retrieve_context(query, k=3):
-    df, index, embed_model = load_retrieval()
+    if df_rag is None: return ""
     q_emb = embed_model.encode([query])
     q_emb = np.array(q_emb, dtype="float32")
     faiss.normalize_L2(q_emb)
-    scores, idxs = index.search(q_emb, k)
-    idxs = idxs[0]
-    snippets = [df.iloc[i]["CONTEXT"] for i in idxs]
+    scores, idxs = index_rag.search(q_emb, k)
+    snippets = [df_rag.iloc[i]["CONTEXT"] for i in idxs[0] if 0 <= i < len(df_rag)]
     return "\n\n".join(snippets)
 
+# ==========================================
+# 4. Prompt Engineering (The "Brain")
+# ==========================================
+def build_prompt(history, context_data):
+    """
+    Constructs a prompt that enforces the 'Summary, Details, Risks' structure.
+    Crucially, it ignores 'System' messages from history to prevent lag/confusion.
+    """
+    system_msg = (
+        "You are a professional financial assistant. "
+        "Your goal is to answer questions using the provided CONTEXT data.\n"
+        "STRICT RESPONSE FORMAT:\n"
+        "1. **Summary**: A direct answer in 1-2 sentences.\n"
+        "2. **Details**: Explain the data, citing numbers from the Context exactly.\n"
+        "3. **Risks/Caveats**: Mention risks or disclaimers (e.g., 'This is not financial advice').\n\n"
+        "RULES:\n"
+        "- If CONTEXT is provided, it is the absolute truth. Do not invent numbers.\n"
+        "- If asked for a recommendation, analyze the PE and Beta but end with 'This is not financial advice'.\n"
+    )
+    
+    # Inject ONLY the current context (not old context)
+    if context_data:
+        system_msg += f"\n### CURRENT CONTEXT (Source of Truth):\n{context_data}\n### END CONTEXT\n"
 
+    # Start Prompt Construction (Phi-3 Format)
+    prompt_text = f"<|user|>\n{system_msg}\n\n"
+    
+    # Add History (Filter out 'System' role to reduce lag)
+    # Only keep last 4 turns to keep it fast
+    relevant_history = [h for h in history if h[0] != "System"][-4:]
+    
+    for role, msg in relevant_history:
+        if role == "User":
+            # If not start, add separator
+            if not prompt_text.endswith("\n\n"): prompt_text += "<|end|>\n<|user|>\n"
+            prompt_text += f"{msg}"
+        elif role == "Assistant":
+            prompt_text += f"<|end|>\n<|assistant|>\n{msg}"
 
+    # Prepare for generation
+    prompt_text += "<|end|>\n<|assistant|>\n"
+    return prompt_text
 
+def generate_response(history, context_data=""):
+    prompt = build_prompt(history, context_data)
+    inputs = tokenizer(prompt, return_tensors="pt").to(DEVICE)
 
-# ---------- Streamlit UI (ChatGPT-style) ----------
+    with torch.no_grad():
+        outputs = model.generate(
+            **inputs,
+            max_new_tokens=350, # Sufficient for Summary/Details/Risks
+            do_sample=True,
+            temperature=0.3,    # Low temp = more factual/stable
+            top_p=0.9,
+            repetition_penalty=1.1,
+            eos_token_id=tokenizer.eos_token_id
+        )
+    
+    full_out = tokenizer.decode(outputs[0], skip_special_tokens=True)
+    
+    # Parse out only the new response
+    if "Assistant" in full_out:
+        response = full_out.split("Assistant")[-1].strip()
+        response = response.lstrip(": ") # Clean leading colons
+    else:
+        response = full_out
+        
+    return response
 
-st.set_page_config(page_title="Finance LLaMA Chat", page_icon="💸", layout="wide")
-st.title("💸🦙 Financial Chat Assistant (LLaMA)")
-
-st.write(
-    "Ask any finance-related question (markets, investing, macro, personal finance, etc.). "
-    "This uses your fine-tuned LLaMA model under the hood."
-)
-
-# Load model once
-# tokenizer, model, device, newline_token_id = load_model()
-# Load model once
-tokenizer, model, device = load_model()
-
-
+# ==========================================
+# 5. Streamlit UI (The Interface)
+# ==========================================
 with st.sidebar:
-    st.header("Model Info")
-    st.caption("Model: `oopere/Llama-FinSent-S`")
-    st.caption(f"Device: **{device.upper()}**")
-    if st.button("Clear chat history"):
+    st.header("AML Project Control")
+    st.markdown(f"**Device:** `{DEVICE.upper()}`")
+    if st.button("Clear Conversation"):
         st.session_state.history = []
+        st.rerun()
+    st.markdown("---")
+    st.markdown("### Team:\n* Shreya Shetty (svs2148)\n* Shruti Shetty (ss7592)\n* Anamika Mishra (akm2259)\n* Akriti Agarwal (aa5807)")
 
-# Initialize chat history
 if "history" not in st.session_state:
-    st.session_state.history = []  # list of (role, message)
+    st.session_state.history = []
 
-# Show previous messages
+# Display Chat History
 for role, msg in st.session_state.history:
     if role == "User":
         st.chat_message("user").write(msg)
-    else:
+    elif role == "Assistant":
         st.chat_message("assistant").write(msg)
+    elif role == "System":
+        # Collapsible System Context (Verification Layer)
+        with st.expander("🔍 Verified Context Data (Click to View)", expanded=False):
+            st.code(msg, language="text")
 
-# Input box at bottom (like ChatGPT)
-user_msg = st.chat_input("Ask your finance question...")
-
-
+# Chat Input
+user_msg = st.chat_input("Ask a question (e.g., 'What is the PE of MSFT?' or 'Equity share capital?')...")
 
 if user_msg:
-    # Add user message
-    st.session_state.history.append(("User", user_msg))
+    # 1. Show User Message
     st.chat_message("user").write(user_msg)
+    st.session_state.history.append(("User", user_msg))
 
-    # --- NEW: detect greetings / very general small talk ---
-    lower_msg = user_msg.strip().lower()
-    greeting_triggers = ["hi", "hello", "hey", "good morning", "good evening", "good afternoon"]
-    help_triggers = ["can you help", "what can you do", "i'm new", "im new", "i am new"]
-
-    is_greeting = any(lower_msg == g or lower_msg.startswith(g + " ") for g in greeting_triggers)
-    is_helpish = any(p in lower_msg for p in help_triggers)
-
-    if is_greeting:
+    # 2. Fast Greeting Check (No LLM needed)
+    lower_msg = user_msg.lower().strip()
+    greetings = ["hi", "hello", "hey", "good morning", "good evening"]
+    if lower_msg in greetings or (len(lower_msg) < 15 and any(lower_msg.startswith(g) for g in greetings)):
         reply = (
-            "Hi! I’m your financial assistant. "
-            "You can ask me about stocks, ETFs, company fundamentals, or general investing questions."
+            "Hello! I am your financial assistant. I can help with:\n"
+            "- **Live Stock Data** (e.g., 'Check MSFT')\n"
+            "- **Financial Concepts** (e.g., 'What is P/E?')\n"
+            "- **RAG Analysis** (Using your class dataset)\n"
+            "How can I help you today?"
         )
         st.chat_message("assistant").write(reply)
         st.session_state.history.append(("Assistant", reply))
-        st.stop()
+        st.stop() # Exit successfully
 
-    if is_helpish and not is_greeting:
-        reply = (
-            "I can help explain investing concepts, analyze companies at a high level, "
-            "and use some live market data to discuss stocks and ETFs. "
-            "What finance or investing question would you like to start with?"
-        )
-        st.chat_message("assistant").write(reply)
-        st.session_state.history.append(("Assistant", reply))
-        st.stop()
-    # -------------------------------------------------------
-
-    # Existing Yahoo Finance part (if you have it)
-    ticker = extract_ticker(user_msg)
+    # 3. Context Builder
+    context_buffer = []
+    
+    # A. Check for Ticker
+    ticker = extract_ticker(user_msg.upper())
     if ticker:
-        live_context = get_ticker_summary(ticker)
-        st.session_state.history.append(("System", live_context))
+        live = get_ticker_live_data(ticker)
+        stmts = get_financial_statements(ticker)
+        context_buffer.append(live)
+        context_buffer.append(f"Financial Statements for {ticker}: {stmts}")
+        st.toast(f"Retrieved live data for {ticker}", icon="📡")
 
-    # Existing RAG part
-    rag_context = retrieve_context(user_msg)
-    if rag_context:
-        st.session_state.history.append(
-            ("System",
-             "CONTEXT from financial reports (use these numbers exactly, do not change them):\n"
-             + rag_context)
-        )
+    # B. Check RAG (if dataset loaded)
+    if df_rag is not None:
+        rag_text = retrieve_context(user_msg)
+        if rag_text: 
+            context_buffer.append(f"Internal Knowledge Base (RAG):\n{rag_text}")
 
-    # Model reply (draft+refine inside generate_response)
+    full_context = "\n\n".join(context_buffer)
+
+    # 4. Save Context to History (For UI verification only)
+    if full_context:
+        st.session_state.history.append(("System", full_context))
+        # We re-display it immediately for the current turn
+        with st.expander("🔍 Verified Context Data (Click to View)", expanded=False):
+            st.code(full_context, language="text")
+
+    # 5. Generate Response
     with st.chat_message("assistant"):
-        with st.spinner("Thinking…"):
-            reply = generate_response(
-                st.session_state.history,
-                tokenizer,
-                model,
-                device,
-            )
-        st.write(reply)
+        with st.spinner("Analyzing financials..."):
+            reply = generate_response(st.session_state.history, full_context)
+            st.write(reply)
 
+    # 6. Save Answer
     st.session_state.history.append(("Assistant", reply))
-
-
-
-
-    # Save reply to history
-    st.session_state.history.append(("Assistant", reply))
-    # MAX_TURNS = 5
-    # if len(st.session_state.history) > 2 * MAX_TURNS:
-    #     st.session_state.history = st.session_state.history[-2 * MAX_TURNS:]
-
-
