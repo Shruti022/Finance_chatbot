@@ -4,6 +4,7 @@
 # 🏦 Lumiq: Multi-Agent AI Platform for Financial Analysis
 
 A multi-agent RAG-based system that democratizes professional-grade stock analysis and financial document processing through collaborative AI agents.
+Made By: Shruti Shetty, Shreya Shetty, Akriti Agarwal, and Anamika Mishra
 
 ***
 
@@ -20,11 +21,11 @@ A multi-agent RAG-based system that democratizes professional-grade stock analys
 
 - [Overview](https://github.com/Shruti022/Finance_chatbot/blob/main/README.md#-overview)
 - [Features](https://github.com/Shruti022/Finance_chatbot/blob/main/README.md#-features)
-- [Architecture](https://github.com/Shruti022/Finance_chatbot/edit/main/README.md#%EF%B8%8F-architecture)
-- [Tech Stack](https://github.com/Shruti022/Finance_chatbot/edit/main/README.md#%EF%B8%8F-tech-stack)
-- [Installation](https://github.com/Shruti022/Finance_chatbot/edit/main/README.md#-installation)
-- [Usage](https://github.com/Shruti022/Finance_chatbot/edit/main/README.md#-usage)
-- [API Keys](https://github.com/Shruti022/Finance_chatbot/edit/main/README.md#-api-keys-summary)
+- [Architecture](https://github.com/Shruti022/Finance_chatbot/blob/main/README.md#%EF%B8%8F-architecture)
+- [Tech Stack](https://github.com/Shruti022/Finance_chatbot/blob/main/README.md#%EF%B8%8F-tech-stack)
+- [Installation](https://github.com/Shruti022/Finance_chatbot/blob/main/README.md#-installation)
+- [Usage](https://github.com/Shruti022/Finance_chatbot/blob/main/README.md#-usage)
+- [API Keys](https://github.com/Shruti022/Finance_chatbot/blob/main/README.md#-api-keys-summary)
 
 ***
 
