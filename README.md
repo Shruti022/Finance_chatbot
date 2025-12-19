@@ -29,21 +29,23 @@ Diagram 3: RAG Retrieval Process
 
 ***
 
+
 # 🏦 Lumiq: Multi-Agent AI Platform for Financial Analysis
 
+![Status](https://img.shields.io/badge/status-active-success[License](https://img.shields.io/badge/license-MIT-green
 
-
-![Status](https://img.shields.io/badge/status-active-successYour Journey to Intelligent Investing Begins Here.**
-
-**A multi-agent RAG-based system that democratizes professional-grade stock analysis and financial document processing through collaborative AI.**[1][2]
+A multi-agent RAG-based system that democratizes professional-grade stock analysis and financial document processing through collaborative AI agents.
 
 ***
 
-## 🌐 Live Demo
+## 🌐 Quick Links
 
-**Try it now:** [https://huggingface.co/spaces/Shruti02222/ai-investment-analyst](https://huggingface.co/spaces/Shruti02222/ai-investment-analyst)
+- **🚀 Live Demo**: [https://huggingface.co/spaces/Shruti02222/ai-investment-analyst](https://huggingface.co/spaces/Shruti02222/ai-investment-analyst)
+- **💻 GitHub Repository**: [https://github.com/Shruti022/Finance_chatbot](https://github.com/Shruti022/Finance_chatbot)
+- **📂 Hugging Face Files**: [https://huggingface.co/spaces/Shruti02222/ai-investment-analyst/tree/main](https://huggingface.co/spaces/Shruti02222/ai-investment-analyst/tree/main)
 
 ***
+
 
 ## 📋 Table of Contents
 
@@ -107,6 +109,15 @@ Lumiq addresses the gap between expensive professional financial tools (Bloomber
 ## 🏗️ Architecture
 
 ```
+Diagram 1: System Architecture (Main Pipeline)
+![Diagram 1: System Architecture (Main Pipeline)](Images/Diagram1.png)
+
+Diagram 2: Multi-Agent Workflow (Flowchart)
+![Diagram 2: Multi-Agent Workflow (Flowchart)](Images/Diagram2.png)
+
+Diagram 3: RAG Retrieval Process
+![Diagram 3: RAG Retrieval Process](Images/Diagram3.png)
+
 
 ```
 
@@ -119,23 +130,38 @@ Lumiq addresses the gap between expensive professional financial tools (Bloomber
 
 ***
 
+
 ## 🛠️ Tech Stack
 
-| Component | Technology |
-|-----------|-----------|
-| **LLM** | Llama-3.3-70B-versatile (Groq API) [2] |
-| **Fallback LLM** | Llama-3.1-8B-instant (rate limit handling) [2] |
-| **Embeddings** | all-MiniLM-L6-v2 (384-dim) [2] |
-| **Vector Store** | FAISS (IndexFlatIP) [2] |
-| **Reranker** | cross-encoder/ms-marco-MiniLM-L-6-v2 [2] |
-| **Document Parsing** | pdfplumber, PyPDF2, openpyxl, pandas [1] |
-| **Market Data** | yfinance (Yahoo Finance API) [2] |
-| **Dataset** | PatronusAI/financebench [2] |
-| **UI Framework** | Gradio [2] |
-| **Deployment** | Hugging Face Spaces [2] |
-| **Language** | Python 3.10+ |
+### Core Technologies
+
+**🤖 Language Models**
+- **Primary**: Llama-3.3-70B-versatile via Groq API
+- **Fallback**: Llama-3.1-8B-instant (automatic rate limit handling)
+
+**🔍 RAG & Retrieval**
+- **Embeddings**: all-MiniLM-L6-v2 (384-dimensional)
+- **Vector Database**: FAISS with IndexFlatIP for cosine similarity
+- **Reranker**: cross-encoder/ms-marco-MiniLM-L-6-v2 for precision retrieval
+
+**📊 Data Sources**
+- **Dataset**: PatronusAI/financebench (115 verified financial Q&As)
+- **Live Market Data**: yfinance (Yahoo Finance API)
+- **Knowledge Base**: 128 documents (115 FinanceBench + 10 live stocks + 3 concepts)
+
+**📄 Document Processing**
+- **PDF Parsing**: pdfplumber, PyPDF2
+- **Excel/CSV**: openpyxl, pandas
+- **Supported Formats**: PDF, XLSX, XLS, CSV
+
+**💻 Frontend & Deployment**
+- **UI Framework**: Gradio
+- **Deployment**: Hugging Face Spaces
+- **Language**: Python 3.10+
 
 ***
+
+
 
 ## 📦 Installation
 
