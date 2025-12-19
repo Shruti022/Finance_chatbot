@@ -324,9 +324,8 @@ Should I invest in SNAP?
 
 **Made with ❤️ for democratizing financial intelligence**
 
-*Empowering investors through AI collaboration*
-
 </div>
+
 
 
 
