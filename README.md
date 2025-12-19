@@ -226,7 +226,145 @@ Should I invest in SNAP?
 **Output:**
 ```
 
-```
+
+
+
+***
+
+## 📦 Installation
+
+### Prerequisites
+
+- Python 3.10 or higher
+- **API Keys**:
+  - **Groq API Key** (get free at [console.groq.com](https://console.groq.com/))
+  - **Hugging Face Token** (get at [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens)) - *Only needed for Colab*
+
+***
+
+### Option 1: Use Live Hugging Face Spaces Deployment (No Setup Required!)
+
+**Just visit and use:** [https://huggingface.co/spaces/Shruti02222/ai-investment-analyst](https://huggingface.co/spaces/Shruti02222/ai-investment-analyst)
+
+- ✅ **No API keys needed from users**
+- ✅ **No installation required**
+- ✅ **Ready to use immediately**
+- The app is pre-configured with the GROQ_API_KEY as a secret variable by the developer
+- Pre-built RAG files (`financebench_enhanced.pkl` and `financebench_enhanced.faiss`) are already uploaded to the Space
+
+***
+
+### Option 2: Run in Google Colab (Full Build from Scratch)
+
+1. **Open the notebook:**
+   ```
+   https://github.com/Shruti022/Finance_chatbot/blob/main/Finance_chatbot_aml_v2-6.ipynb
+   ```
+   Click **"Open in Colab"**
+
+2. **Add your API keys to Colab Secrets:**
+   - Click the 🔑 **key icon** in the left sidebar
+   - Add **TWO secrets**:
+     - **Secret 1:**
+       - Name: `GROQ_API_KEY`
+       - Value: Your Groq API key
+     - **Secret 2:**
+       - Name: `HF_TOKEN`
+       - Value: Your Hugging Face token
+
+3. **Run all cells sequentially:**
+   The notebook will:
+   - Install dependencies
+   - Download FinanceBench dataset from Hugging Face (requires HF_TOKEN)
+   - Fetch live Yahoo Finance data for 10 stocks
+   - Create embeddings using all-MiniLM-L6-v2
+   - Build FAISS index
+   - **Generate `financebench_enhanced.pkl` and `financebench_enhanced.faiss` files**
+   - Launch Gradio interface
+
+4. **Access your Gradio interface:**
+   - A public link will appear: `https://xxxxx.gradio.live`
+
+***
+
+### Option 3: Deploy Your Own Hugging Face Space
+
+1. **First, generate the RAG files in Google Colab** (follow Option 2 above to create the `.pkl` and `.faiss` files)
+
+2. **Download the generated files:**
+   - `financebench_enhanced.pkl`
+   - `financebench_enhanced.faiss`
+
+3. **Create a new Hugging Face Space:**
+   - Go to [huggingface.co/new-space](https://huggingface.co/new-space)
+   - Choose **Gradio** as SDK
+
+4. **Upload files to your Space:**
+   - Upload `app.py` (modified version that LOADS pre-built files)
+   - Upload `financebench_enhanced.pkl`
+   - Upload `financebench_enhanced.faiss`
+   - Upload `requirements.txt`
+
+5. **Key difference in `app.py` for Hugging Face:**
+   ```python
+   # LOAD PRE-BUILT RAG (created in Colab)
+   print("📦 Loading RAG system...")
+   
+   df_rag = pd.read_pickle("financebench_enhanced.pkl")
+   index_rag = faiss.read_index("financebench_enhanced.faiss")
+   embed_model = SentenceTransformer("all-MiniLM-L6-v2")
+   
+   # Build agents (NO dataset downloading, NO FAISS building)
+   agent1 = FundamentalAnalyst()
+   agent2 = MarketDataAnalyst()
+   # ... etc
+   ```
+
+6. **Add GROQ_API_KEY as a Space secret:**
+   - Go to Space Settings → Variables and secrets
+   - Add: `GROQ_API_KEY` = your key
+
+7. **Your Space is live!**
+
+***
+
+### Option 4: Local Installation (Advanced)
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/Shruti022/Finance_chatbot.git
+   cd Finance_chatbot
+   ```
+
+2. **You need the pre-built RAG files:**
+   - Either: Generate them using the Colab notebook first (Option 2)
+   - Or: Download them from the Hugging Face Space repository
+
+3. **Create virtual environment:**
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+4. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+5. **Set environment variables:**
+   ```bash
+   export GROQ_API_KEY="your-groq-api-key"
+   ```
+
+6. **Run the app:**
+   ```bash
+   python app.py
+   ```
+   (Assuming you have an `app.py` that loads the pre-built files)
+
+***
+
+
 
 
 
