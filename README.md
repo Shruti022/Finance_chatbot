@@ -24,7 +24,7 @@ A multi-agent RAG-based system that democratizes professional-grade stock analys
 - [Tech Stack](#tech-stack)
 - [Installation](#installation)
 - [Usage](#usage)
-- [API Keys](#api-keys-required)
+- [API Keys](#api-keys-summary)
 
 ***
 
@@ -320,7 +320,9 @@ Should I invest in SNAP?
 
 
 
+---
 
+**Made with ❤️ for democratizing financial intelligence**
 
 
 
