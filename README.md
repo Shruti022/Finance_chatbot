@@ -316,13 +316,18 @@ Should I invest in SNAP?
 | **FAISS Index** | Generates new index | Reads existing index |
 | **Setup Time** | 5-10 minutes | Instant (loads in seconds) |
 
+
+
 ***
 
-
-
----
+<div align="center">
 
 **Made with ❤️ for democratizing financial intelligence**
+
+*Empowering investors through AI collaboration*
+
+</div>
+
 
 
 
