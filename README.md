@@ -9,8 +9,17 @@ Start with running in the terminal:
 pip install -r requirements.txt
 ```
 
-To run the project, run the following in the terminal:
+To run the project, run the following file in colab notebook:
 ```bash
-streamlit run /Finance_chatbot/finance_chat_app.py
+Finance_chatbot/Finance_chatbot_aml_v2.ipynb
 
 ```
+
+Diagram 1: System Architecture (Main Pipeline)
+![Diagram 1: System Architecture (Main Pipeline)](Images/Diagram1.png)
+
+Diagram 2: Multi-Agent Workflow (Flowchart)
+![Diagram 2: Multi-Agent Workflow (Flowchart)](Images/Diagram2.png)
+
+Diagram 3: RAG Retrieval Process
+![Diagram 3: RAG Retrieval Process](Images/Diagram3.png)
