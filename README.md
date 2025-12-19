@@ -144,7 +144,7 @@ Diagram 3: RAG Retrieval Process
 
 1. **Open the notebook:**
    ```
-   https://github.com/Shruti022/Finance_chatbot/blob/main/Finance_chatbot_aml_v2-6.ipynb
+   https://github.com/Shruti022/Finance_chatbot/blob/main/Finance_chatbot_aml_v2.ipynb
    ```
 
 2. **Click "Open in Colab"**
@@ -196,7 +196,7 @@ Diagram 3: RAG Retrieval Process
 
 5. **Run the notebook:**
    ```bash
-   jupyter notebook Finance_chatbot_aml_v2-6.ipynb
+   jupyter notebook Finance_chatbot_aml_v2.ipynb
    ```
 
 6. **Execute all cells to:**
@@ -210,14 +210,15 @@ Diagram 3: RAG Retrieval Process
 
 ### **Stock Analysis Example**
 
-**Input:**
-```
-Should I invest in SNAP?
-```
+![img4: img4](Images/img4.png)
+![img5: img5](Images/img5.png)
+![img6: img6](Images/img6.png)
+'
+### **Financial Statement Analysis Example**
 
-**Output:**
-```
-
+![img1: img1](Images/img1.png)
+![img2: img2](Images/img2.png)
+![img3: img3](Images/img3.png)
 
 
 
@@ -250,7 +251,7 @@ Should I invest in SNAP?
 
 1. **Open the notebook:**
    ```
-   https://github.com/Shruti022/Finance_chatbot/blob/main/Finance_chatbot_aml_v2-6.ipynb
+   https://github.com/Shruti022/Finance_chatbot/blob/main/Finance_chatbot_aml_v2.ipynb
    ```
    Click **"Open in Colab"**
 
