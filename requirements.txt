@@ -8,3 +8,10 @@ sentence-transformers>=2.5.0
 faiss-cpu>=1.8.0
 accelerate>=0.27.0
 scikit-learn>=1.4.0
+gradio
+groq
+datasets
+PyPDF2
+pdfplumber
+openpyxl
+tabula-py
