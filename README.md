@@ -18,13 +18,13 @@ A multi-agent RAG-based system that democratizes professional-grade stock analys
 
 ## 📋 Table of Contents
 
-- [Overview](#overview)
-- [Features](#features)
-- [Architecture](#architecture)
-- [Tech Stack](#tech-stack)
-- [Installation](#installation)
-- [Usage](#usage)
-- [API Keys](#api-keys-summary)
+- [Overview](https://github.com/Shruti022/Finance_chatbot/blob/main/README.md#-overview)
+- [Features](#-features)
+- [Architecture](#-architecture)
+- [Tech Stack](#-tech-stack)
+- [Installation](#-installation)
+- [Usage](#-usage)
+- [API Keys](#-api-keys-summary)
 
 ***
 
