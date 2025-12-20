@@ -152,7 +152,7 @@ Diagram 3: RAG Retrieval Process
 
 1. **Open the notebook:**
    ```
-   https://github.com/Shruti022/Finance_chatbot/blob/main/Finance_chatbot_aml_v2.ipynb
+   https://github.com/Shruti022/Finance_chatbot/blob/main/Finance_Chatbot_AML_v3.ipynb
    ```
    Click **"Open in Colab"**
 
