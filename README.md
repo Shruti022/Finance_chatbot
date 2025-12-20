@@ -12,10 +12,9 @@ Made By: Shruti Shetty, Shreya Shetty, Akriti Agarwal, and Anamika Mishra
 
 - **🚀 Live Demo**: [https://huggingface.co/spaces/Shruti02222/ai-investment-analyst](https://huggingface.co/spaces/Shruti02222/ai-investment-analyst)
 - **💻 GitHub Repository**: [https://github.com/Shruti022/Finance_chatbot](https://github.com/Shruti022/Finance_chatbot)
-- **📂 Hugging Face Files**: [https://huggingface.co/spaces/Shruti02222/ai-investment-analyst/tree/main](https://huggingface.co/spaces/Shruti02222/ai-investment-analyst/tree/main)
-- 📂 Deployment Code: [https://huggingface.co/spaces/Shruti02222/ai-investment-analyst/tree/main](https://huggingface.co/spaces/Shruti02222/ai-investment-analyst/tree/main)
-- 🎥 Project Demo Video: [https://drive.google.com/file/d/1aaqKMaz4g4eZJ-baMMCrdd9LcTU0twd_/view?usp=sharing](https://drive.google.com/file/d/1aaqKMaz4g4eZJ-baMMCrdd9LcTU0twd_/view?usp=sharing)
-- 📑 Slides: [https://www.canva.com/design/DAG7_ck60UY/8K0ZixTOtkdBkD930YgTKg/edit?utm_content=DAG7_ck60UY&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton](https://www.canva.com/design/DAG7_ck60UY/8K0ZixTOtkdBkD930YgTKg/edit?utm_content=DAG7_ck60UY&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton)
+- **📂 Hugging Face Deployment Repository**: [https://huggingface.co/spaces/Shruti02222/ai-investment-analyst/tree/main](https://huggingface.co/spaces/Shruti02222/ai-investment-analyst/tree/main)
+- **🎥 Project Demo Video**: [https://drive.google.com/file/d/1aaqKMaz4g4eZJ-baMMCrdd9LcTU0twd_/view?usp=sharing](https://drive.google.com/file/d/1aaqKMaz4g4eZJ-baMMCrdd9LcTU0twd_/view?usp=sharing)
+- **📑 Slides**: [https://www.canva.com/design/DAG7_ck60UY/8K0ZixTOtkdBkD930YgTKg/edit?utm_content=DAG7_ck60UY&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton](https://www.canva.com/design/DAG7_ck60UY/8K0ZixTOtkdBkD930YgTKg/edit?utm_content=DAG7_ck60UY&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton)
 
 ***
 
